@@ -1,10 +1,13 @@
 import io
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
 
 from nmrtools.cli import NmrShell, main, split_args
+
+EXPT4_PRESET = Path(__file__).resolve().parents[1] / "examples" / "cm3191" / "expt4.json"
 
 SF = 400.13
 SI = 65536
@@ -85,7 +88,7 @@ def test_plot_and_export_write_files(bruker_dir, tmp_path):
         shell,
         f"load {bruker_dir}",
         "ref",
-        "preset expt4",
+        f"preset {EXPT4_PRESET}",
         f"plot 3.5 6.2 out={svg}",
         f"plot out={png}",
         f"export {js}",
@@ -141,6 +144,25 @@ def test_figure_argument_errors(bruker_dir, tmp_path):
     )
     assert out.count("error:") == 6
     assert list(tmp_path.glob("*.png")) == []
+
+
+def test_bad_preset_keeps_the_table(bruker_dir, tmp_path):
+    bad = tmp_path / "bad.json"
+    bad.write_text('{"integrals": [{"name": "x"}]}')
+    shell = NmrShell()
+    out = run(
+        shell, f"load {bruker_dir}", "integrate 3.7 3.9 name=A", f"preset {bad}", "preset /no/such.json", "preset"
+    )
+    assert out.count("error:") == 3
+    assert [r.name for r in shell.integrals["s1"]] == ["A"]
+
+
+def test_cm3191_example_reads_its_preset(monkeypatch):
+    monkeypatch.syspath_prepend(str(EXPT4_PRESET.parent))
+    run_expt4 = pytest.importorskip("run_expt4")
+    assert run_expt4.QUANT_SIGNALS["EtOAc"] == ("OCH2, δ 4.12", 4.05, 4.20, 2)
+    assert run_expt4.MW["linalool"] == 154.25
+    assert callable(run_expt4.plot_crude_vs_purified)
 
 
 def test_errors_are_reported_not_raised(bruker_dir, tmp_path):

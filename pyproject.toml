@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nmr-tool"
-version = "0.2.0"
-description = "Read processed Bruker 1H NMR spectra and reproduce the CM3191 Expt 4 (linalool) analysis"
+version = "0.3.0"
+description = "Read and analyse processed Bruker 1H NMR spectra from an interactive shell"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

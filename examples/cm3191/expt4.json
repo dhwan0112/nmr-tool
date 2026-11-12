@@ -1,0 +1,9 @@
+{
+  "description": "CM3191 Organic Expt 4, (±)-linalool: one well-resolved, non-overlapping resonance per species in the crude spectrum (CDCl3, 400 MHz)",
+  "molar_masses": {"linalool": 154.25, "ketone": 126.20, "side product": 128.21, "EtOAc": 88.11},
+  "integrals": [
+    {"name": "linalool", "signal": "CH=CH2 internal H, δ 5.91", "window_ppm": [5.80, 6.00], "n_H": 1, "mw": 154.25},
+    {"name": "side product", "signal": "CH(OH), δ 3.81", "window_ppm": [3.70, 3.92], "n_H": 1, "mw": 128.21},
+    {"name": "EtOAc", "signal": "OCH2, δ 4.12", "window_ppm": [4.05, 4.20], "n_H": 2, "mw": 88.11}
+  ]
+}

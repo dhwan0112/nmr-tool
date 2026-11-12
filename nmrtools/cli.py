@@ -21,7 +21,6 @@ from typing import IO
 
 from .analysis import Component, coupling_constants, integrate, mass_correction, pick_lines
 from .bruker import Spectrum, load_spectrum
-from .presets import EXPT4_MW, EXPT4_QUANT_SIGNALS
 
 _KEYWORD = re.compile(r"^([a-z_]+)=(.*)$")
 
@@ -44,7 +43,7 @@ Integrals and mass correction
   integrals                     table with I, I/nH and ratios to the first row
   remove <name>                 remove one integral
   clear                         remove all integrals of the current spectrum
-  preset expt4                  the three Expt 4 integrals (linalool, side product, EtOAc)
+  preset <file.json>            replace the table with the integrals listed in a preset file
   mass <total g> [target=X]     mass correction over the integrals that have mw
 Output
   label <ppm> <text>            name a peak of the current spectrum for the figures
@@ -245,10 +244,10 @@ class NmrShell(cmd.Cmd):
             self.say(f"subtracted an order-{order} polynomial through {len(regions)} regions")
         else:
             self._replace(spec.baseline_poly(order=order))
-            self.say(f"subtracted an order-{order} polynomial through the default linalool/CDCl3 regions")
+            self.say(f"subtracted an order-{order} polynomial through the default regions")
 
     def do_prepare(self, line: str) -> None:
-        """prepare  -- ref, baseline offset and baseline poly with their defaults (the Expt 4 chain)."""
+        """prepare  -- ref, baseline offset and baseline poly with their defaults."""
         self.do_ref("")
         self.do_baseline("offset")
         self.do_baseline("poly")
@@ -334,13 +333,33 @@ class NmrShell(cmd.Cmd):
         self._rows().clear()
 
     def do_preset(self, line: str) -> None:
-        """preset expt4  -- replace the table with the three Expt 4 quantification signals."""
-        if line.strip() != "expt4":
-            raise CliError("usage: preset expt4")
+        """preset <file.json>  -- replace the integral table with the integrals listed in a preset file.
+
+        The file holds {"integrals": [{"name": ..., "window_ppm": [lo, hi],
+        "n_H": 1, "mw": 154.25}, ...]}; n_H and mw are optional. See
+        examples/cm3191/expt4.json.
+        """
+        words, _ = split_args(line)
+        if len(words) != 1:
+            raise CliError("usage: preset <file.json>")
+        path = Path(words[0]).expanduser()
+        if not path.is_file():
+            raise CliError(f"no such preset file: {path}")
         rows = self._rows()
-        rows[:] = [
-            Integral(name, lo, hi, n_h, EXPT4_MW[name]) for name, (_, lo, hi, n_h) in EXPT4_QUANT_SIGNALS.items()
-        ]
+        try:
+            entries = json.loads(path.read_text(encoding="utf-8"))["integrals"]
+            new = [
+                Integral(
+                    str(e["name"]),
+                    *sorted(float(v) for v in e["window_ppm"]),
+                    n_h=int(e.get("n_H", 1)),
+                    mw=None if e.get("mw") is None else float(e["mw"]),
+                )
+                for e in entries
+            ]
+        except (ValueError, KeyError, TypeError) as exc:
+            raise CliError(f"{path} is not a preset file: {type(exc).__name__}: {exc}") from None
+        rows[:] = new
         self.do_integrals("")
 
     def _mass(self, total_mass: float, target: str | None) -> dict:

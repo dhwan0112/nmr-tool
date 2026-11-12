@@ -2,146 +2,118 @@
 
 # nmr-tool
 
-Python scripts that read processed Bruker ¹H NMR spectra and reproduce the
-numbers and figures used for CM3191 Organic Experiment 4, the Grignard
-synthesis of (±)-linalool (NUS, AY26/27).
+A command-line shell and a small Python package for looking at processed
+Bruker ¹H NMR spectra: referencing, baseline, line positions, coupling
+constants, integrals, mass correction for residual solvent, and figures.
 
-The scripts read the processed spectrum (`pdata/1/1r`) directly. They do not
-need TopSpin or MestReNova, and they do not redo the Fourier transform or
-phasing.
+It reads the processed spectrum (`pdata/1/1r`) directly. It does not need
+TopSpin or MestReNova, and it does not redo the Fourier transform or phasing.
 
 ## What it does
 
 - Reads a Bruker experiment folder or a `.zip` of one.
-- References the axis to residual CHCl₃ at δ 7.26 and flattens the baseline.
+- References the axis to a known signal (default: residual CHCl₃ at δ 7.26)
+  and flattens the baseline.
 - Picks line positions and reports first-order coupling constants.
-- Integrates one resolved signal per species and applies the mass correction
-  from the course handout *Correcting Compound Mass and Yield for Residual
-  Solvent Using ¹H NMR*, extended from two to three components.
-- Draws the purified spectrum, and crude against purified at true relative
-  scale with labelled zoom insets.
+- Builds an integral table and converts it to mole ratios, weight fractions
+  and masses (mass correction for any number of components).
+- Writes figures as PNG, SVG or PDF files: one panel per ppm range, or
+  spectra stacked one above the other with magnified insets.
 
 ## Install
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
 ```
 
-## Run
-
-Raw data are not in this repository. Put the two spectrometer exports in
-`data/` (ignored by git), then:
-
-```bash
-python scripts/run_expt4.py \
-    --crude    data/CM3191-Week_11-Thurs-400-Oct29-2026-C05.zip \
-    --purified data/CM3191-Week_11-Thurs-400-Oct29-2026-P05.zip \
-    --out results
-```
-
-This prints a summary and writes `results/results.json`,
-`results/nmr_purified.png` and `results/nmr_crude_vs_purified.png`.
-Masses and the ketone volume default to the values on the signed datasheet
-and can be changed with `--crude-mass`, `--purified-mass` and `--ketone-ml`.
-
-Expected summary for the Expt 4 data:
-
-| Quantity | Value |
-|---|---|
-| Ketone | 2.98 mmol (0.44 mL × 0.855 g mL⁻¹ ÷ 126.20 g mol⁻¹) |
-| Theoretical linalool | 0.460 g |
-| Purified yield | 33.7% (0.1549 g) |
-| Crude mole ratio, linalool : side product : EtOAc | 1 : 0.57 : 0.08 |
-| Linalool in crude | ≈ 66 wt%, 0.311 g |
-| Column recovery (linalool basis) | ≈ 50% |
+This installs the `nmrtools` command. Without installing, use
+`pip install -r requirements.txt` and `python -m nmrtools` from the
+repository root.
 
 ## Interactive shell
 
-`python -m nmrtools` starts a command-line shell for looking at any processed
-Bruker ¹H spectrum: load, reference, read line positions and coupling
-constants, build an integral table and apply the mass correction. Figures are
-written as PNG, SVG or PDF files; nothing is drawn in the terminal.
-
 ```text
-$ python -m nmrtools data/crude.zip
-nmr> prepare
+$ nmrtools path/to/experiment.zip
+nmr> ref
+nmr> baseline offset
 nmr> j 5.86 5.96
-nmr> preset expt4
-nmr> mass 0.4725 target=linalool
+nmr> integrate 5.80 6.00 name=product nh=1 mw=154.25
+nmr> integrate 4.05 4.20 name=EtOAc nh=2 mw=88.11
+nmr> mass 0.4725 target=product
 nmr> label 5.91 Ha
-nmr> plot 4.9 6.1 1.1 2.3 out=crude.svg
+nmr> plot 4.9 6.1 1.1 2.3 out=product.svg
 nmr> help
 ```
+
+`help` lists every command and `help <command>` shows its usage. Figures are
+written as image files; nothing is drawn in the terminal.
 
 `plot` draws one panel per ppm range, each scaled to its tallest peak, with
 the `label` texts above their peaks and the integral windows shaded. `stack`
 compares spectra one above the other and can add magnified insets:
 
 ```text
-$ python -m nmrtools data/crude.zip data/purified.zip
-nmr> use s1
-nmr> prepare
-nmr> use s2
-nmr> prepare
+$ nmrtools crude.zip purified.zip
 nmr> stack 0.45 6.2 zoom=3.6:4.3 x=10 out=compare.png
 ```
 
-`load` applies no corrections. `prepare` runs the Expt 4 chain (CHCl₃ to
-δ 7.26, offset, quadratic baseline through the linalool/CDCl₃ regions); for
-another compound use `ref` and `baseline` with your own regions. Commands can
-also be run without the prompt, `python -m nmrtools data/crude.zip -c "prepare; j 5.86 5.96"`,
-or piped in on standard input. After `pip install -e .` the same shell is
-available as `nmrtools`.
+`load` applies no corrections; use `ref` and `baseline` yourself. `prepare`
+runs `ref`, `baseline offset` and `baseline poly` with their default regions,
+which were chosen for the example spectra, so check them for another compound.
+`preset <file.json>` fills the integral table from a file (see
+[examples/cm3191/expt4.json](examples/cm3191/expt4.json)).
 
-## Method
+Commands can also be run without the prompt,
+`nmrtools experiment.zip -c "ref; j 5.86 5.96"`, or piped in on standard
+input. With `-c` the exit code is 1 if any command failed.
 
-Mole ratios use one well-resolved, non-overlapping resonance per species,
-divided by its number of protons:
+## Python package
 
-| Species | Signal | Window (ppm) | nH |
-|---|---|---|---|
-| Linalool | CH=CH₂ internal H, δ 5.91 | 5.80–6.00 | 1 |
-| Side product | CH(OH), δ 3.81 | 3.70–3.92 | 1 |
-| Ethyl acetate | OCH₂, δ 4.12 | 4.05–4.20 | 2 |
+```python
+from nmrtools import load_spectrum, pick_lines, coupling_constants, integrate
 
-The baseline is a quadratic fitted through signal-free regions, and integrals
-are plain sums over the windows.
+spec = load_spectrum("experiment.zip").referenced().baseline_offset()
+centre, js = coupling_constants(pick_lines(spec, 5.86, 5.96, n=4), spec.sf)
+area = integrate(spec, 5.80, 6.00)
+```
+
+## Example
+
+[examples/cm3191](examples/cm3191) is a complete analysis built on the
+package: the ¹H NMR numbers and figures for an undergraduate Grignard
+synthesis of (±)-linalool (crude and column-purified product).
 
 ## Limits
 
-- The spectra were acquired with `zg30`, D1 = 1 s and 8 scans. That is not a
-  quantitative experiment, so treat the mole ratios as ±10%.
-- Only the three listed species are counted. Water, salts or grease are not,
-  so the linalool weight fraction is an upper bound.
-- The side product is assigned tentatively as 6-methyl-5-hepten-2-ol.
-- The integration windows and baseline regions are set for these spectra.
-  Check them before using the code on another compound.
+- Only processed 1D spectra are read. There is no Fourier transform,
+  phasing or apodisation.
+- Integrals are plain sums over the windows. Routine spectra (short
+  relaxation delay) are not quantitative; treat mole ratios as ±10%.
+- Coupling constants are first-order, from the line positions of a doublet
+  or a doublet of doublets.
 - The results have not been cross-checked against MestReNova.
 
 ## Tests
 
 ```bash
+pip install -e ".[test]"
 pytest
 ```
 
-The tests use synthetic spectra and the worked example from the course
-handout, so they run without the raw data.
+The tests use synthetic spectra, so they run without spectrometer data.
 
 ## Layout
 
 ```
 nmrtools/bruker.py     read pdata/1/1r, referencing, baseline
 nmrtools/analysis.py   lines, coupling constants, integrals, mass correction
-nmrtools/plots.py      the two Expt 4 figures, and the panel and stack figures for the shell
-nmrtools/cli.py        interactive shell (`python -m nmrtools`)
-nmrtools/presets.py    Expt 4 integration windows and molar masses
-scripts/run_expt4.py   command-line entry point for Expt 4
+nmrtools/plots.py      panel and stack figures
+nmrtools/cli.py        interactive shell (`nmrtools`, `python -m nmrtools`)
+examples/cm3191/       worked example: linalool from a Grignard reaction
 tests/                 synthetic-data tests
 ```
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-The course submission itself (the lab report and datasheets) is not included in this repository.
