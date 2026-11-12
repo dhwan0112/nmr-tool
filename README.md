@@ -56,6 +56,44 @@ Expected summary for the Expt 4 data:
 | Linalool in crude | ≈ 66 wt%, 0.311 g |
 | Column recovery (linalool basis) | ≈ 50% |
 
+## Interactive shell
+
+`python -m nmrtools` starts a command-line shell for looking at any processed
+Bruker ¹H spectrum: load, reference, read line positions and coupling
+constants, build an integral table and apply the mass correction. Figures are
+written as PNG, SVG or PDF files; nothing is drawn in the terminal.
+
+```text
+$ python -m nmrtools data/crude.zip
+nmr> prepare
+nmr> j 5.86 5.96
+nmr> preset expt4
+nmr> mass 0.4725 target=linalool
+nmr> label 5.91 Ha
+nmr> plot 4.9 6.1 1.1 2.3 out=crude.svg
+nmr> help
+```
+
+`plot` draws one panel per ppm range, each scaled to its tallest peak, with
+the `label` texts above their peaks and the integral windows shaded. `stack`
+compares spectra one above the other and can add magnified insets:
+
+```text
+$ python -m nmrtools data/crude.zip data/purified.zip
+nmr> use s1
+nmr> prepare
+nmr> use s2
+nmr> prepare
+nmr> stack 0.45 6.2 zoom=3.6:4.3 x=10 out=compare.png
+```
+
+`load` applies no corrections. `prepare` runs the Expt 4 chain (CHCl₃ to
+δ 7.26, offset, quadratic baseline through the linalool/CDCl₃ regions); for
+another compound use `ref` and `baseline` with your own regions. Commands can
+also be run without the prompt, `python -m nmrtools data/crude.zip -c "prepare; j 5.86 5.96"`,
+or piped in on standard input. After `pip install -e .` the same shell is
+available as `nmrtools`.
+
 ## Method
 
 Mole ratios use one well-resolved, non-overlapping resonance per species,
@@ -95,7 +133,9 @@ handout, so they run without the raw data.
 ```
 nmrtools/bruker.py     read pdata/1/1r, referencing, baseline
 nmrtools/analysis.py   lines, coupling constants, integrals, mass correction
-nmrtools/plots.py      the two figures
+nmrtools/plots.py      the two Expt 4 figures, and the panel and stack figures for the shell
+nmrtools/cli.py        interactive shell (`python -m nmrtools`)
+nmrtools/presets.py    Expt 4 integration windows and molar masses
 scripts/run_expt4.py   command-line entry point for Expt 4
 tests/                 synthetic-data tests
 ```
