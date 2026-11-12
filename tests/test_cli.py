@@ -7,7 +7,7 @@ import pytest
 
 from nmrtools.cli import NmrShell, main, split_args
 
-EXPT4_PRESET = Path(__file__).resolve().parents[1] / "examples" / "cm3191" / "expt4.json"
+EXPT4_PRESET = Path(__file__).resolve().parents[1] / "examples" / "cm3191" / "organic-4-linalool" / "expt4.json"
 
 SF = 400.13
 SI = 65536
@@ -186,3 +186,13 @@ def test_main_runs_commands_and_sets_exit_code(bruker_dir, capsys):
     assert main([str(bruker_dir), "-c", "ref; j 5.86 5.96"]) == 0
     assert "J = 17.3, 10.7 Hz" in capsys.readouterr().out
     assert main([str(bruker_dir), "-c", "nonsense"]) == 1
+
+
+def test_comment_lines_are_skipped(bruker_dir):
+    out = io.StringIO()
+    shell = NmrShell(stdout=out)
+    shell.onecmd(f"load {bruker_dir}")
+    shell.onecmd("# a note in a command file")
+    shell.onecmd("   # indented note")
+    assert shell.errors == 0
+    assert "error" not in out.getvalue()

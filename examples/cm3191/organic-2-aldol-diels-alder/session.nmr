@@ -1,0 +1,14 @@
+# Run from the repository root with the export in data/ (not tracked).
+load "data/CM3191-Thurs-5TBI-Oct15-2026-One Pot-09.zip" adduct
+# The aromatic multiplet covers residual CHCl3, so the axis is referenced
+# to the ethyl acetate singlet at 2.05 instead.
+ref 2.05 2.00 2.15
+baseline offset
+j 4.24 4.36
+j 3.12 3.25
+j 2.60 2.72
+integrate 4.22 4.38 name=Ha nh=1
+integrate 3.10 3.27 name=Hb nh=1
+integrate 2.58 2.74 name=Hc nh=1
+integrate 2.02 2.08 name=EtOAc nh=3
+plot 4.2 4.4 3.08 3.28 2.55 2.75 out=examples/cm3191/organic-2-aldol-diels-alder/abx.png

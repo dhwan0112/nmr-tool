@@ -1,0 +1,13 @@
+# Run from the repository root with the export in data/ (not tracked).
+load "data/CM3191-Week7 Thurs-500-Oct01-2026-09.zip" product
+# The aromatic lines crowd the default 7.20-7.35 search window, so the
+# residual CHCl3 line is picked out with a narrower one.
+ref 7.26 7.275 7.295
+baseline offset
+j 8.14 8.24 n=2
+integrate 8.13 8.25 name=H-2,6 nh=2
+integrate 7.68 7.76 name=H-3,5 nh=2
+integrate 7.60 7.68 name=H-2′,6′ nh=2
+integrate 7.45 7.53 name=H-3′,5′ nh=2
+integrate 7.37 7.45 name=H-4′ nh=1
+plot 7.3 8.3 out=examples/cm3191/organic-1-suzuki/aromatic.png

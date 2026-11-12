@@ -4,7 +4,7 @@ the Grignard synthesis of (±)-linalool.
 
 Example
 -------
-    python examples/cm3191/run_expt4.py \
+    python examples/cm3191/organic-4-linalool/run_expt4.py \
         --crude    data/CM3191-Week_11-Thurs-400-Oct29-2026-C05.zip \
         --purified data/CM3191-Week_11-Thurs-400-Oct29-2026-P05.zip \
         --out results
@@ -18,13 +18,13 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parents[1]))  # run from a checkout without installing nmrtools
+sys.path.insert(0, str(HERE.parents[2]))  # run from a checkout without installing nmrtools
 
 from figures import plot_crude_vs_purified, plot_purified
 
 from nmrtools import Component, Spectrum, coupling_constants, integrate, load_spectrum, mass_correction, pick_lines
 
-# The same file the interactive shell reads with `preset examples/cm3191/expt4.json`.
+# The same file the interactive shell reads with `preset examples/cm3191/organic-4-linalool/expt4.json`.
 PRESET = json.loads((HERE / "expt4.json").read_text(encoding="utf-8"))
 MW = PRESET["molar_masses"]
 # name -> (signal, window low, window high, number of H)

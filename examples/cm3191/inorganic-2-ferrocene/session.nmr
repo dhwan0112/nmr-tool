@@ -1,0 +1,13 @@
+# Run from the repository root with the export in data/ (not tracked).
+load data/CM3191-Thurs-400-Sep17-2026-09.zip Fc
+ref
+baseline offset
+peaks 4.36 4.42 n=1
+peaks 3.92 3.98 n=1
+integrate 4.05 4.30 name=Cp-H nh=10
+integrate 1.45 1.65 name=water nh=2
+label 4.39 ¹³C sat.
+label 3.95 ¹³C sat.
+label 1.55 H₂O
+label 7.26 CHCl₃
+stack 0.8 7.6 zoom=3.80:4.54 x=80 out=examples/cm3191/inorganic-2-ferrocene/ferrocene.png

@@ -1,0 +1,21 @@
+# Run from the repository root with the two exports in data/ (not tracked).
+# Shifts are left as recorded: no line here is a safe reference.
+load data/CM3191-Thurs-400-Aug27-2026-09.zip Aug27
+load "data/CM3191(Thurs)-400-Sep03-2026-09.zip" Sep03
+
+use Aug27
+baseline offset
+integrate 2.383 2.503 name=mesitylene nh=9
+integrate 8.035 8.120 name=acetophenone nh=2
+integrate 4.88 5.04 name=1-phenylethanol nh=1
+label 2.44 mesitylene CH₃
+label 1.61 PhCH(OH)CH₃
+
+use Sep03
+baseline offset
+integrate 2.367 2.487 name=mesitylene nh=9
+integrate 8.035 8.120 name=acetophenone nh=2
+integrate 4.88 5.04 name=1-phenylethanol nh=1
+label 8.07 PhC(O)CH₃ ortho H
+
+stack 0.8 8.4 norm=2.36:2.51 zoom=7.95:8.20 x=20 out=examples/cm3191/inorganic-1-transfer-hydrogenation/stack.png

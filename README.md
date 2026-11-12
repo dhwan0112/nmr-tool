@@ -62,11 +62,12 @@ nmr> stack 0.45 6.2 zoom=3.6:4.3 x=10 out=compare.png
 runs `ref`, `baseline offset` and `baseline poly` with their default regions,
 which were chosen for the example spectra, so check them for another compound.
 `preset <file.json>` fills the integral table from a file (see
-[examples/cm3191/expt4.json](examples/cm3191/expt4.json)).
+[examples/cm3191/organic-4-linalool/expt4.json](examples/cm3191/expt4.json)).
 
 Commands can also be run without the prompt,
 `nmrtools experiment.zip -c "ref; j 5.86 5.96"`, or piped in on standard
-input. With `-c` the exit code is 1 if any command failed.
+input (`nmrtools < session.nmr`); lines that start with `#` are comments.
+With `-c` the exit code is 1 if any command failed.
 
 ## Python package
 
@@ -78,11 +79,16 @@ centre, js = coupling_constants(pick_lines(spec, 5.86, 5.96, n=4), spec.sf)
 area = integrate(spec, 5.80, 6.00)
 ```
 
-## Example
+## Examples
 
-[examples/cm3191](examples/cm3191) is a complete analysis built on the
-package: the ¹H NMR numbers and figures for an undergraduate Grignard
-synthesis of (±)-linalool (crude and column-purified product).
+[examples/cm3191](examples/cm3191) holds six worked examples from an
+undergraduate synthesis lab course, each with its figure and the commands
+that made it: stacked spectra on an internal standard, ¹³C satellites,
+an aromatic region with integral windows, a three-spin system with its
+coupling constants, a diastereomer ratio, and a complete analysis script
+(yield and mass correction for (±)-linalool).
+
+![three doublets of doublets](examples/cm3191/organic-2-aldol-diels-alder/abx.png)
 
 ## Limits
 
@@ -110,7 +116,7 @@ nmrtools/bruker.py     read pdata/1/1r, referencing, baseline
 nmrtools/analysis.py   lines, coupling constants, integrals, mass correction
 nmrtools/plots.py      panel and stack figures
 nmrtools/cli.py        interactive shell (`nmrtools`, `python -m nmrtools`)
-examples/cm3191/       worked example: linalool from a Grignard reaction
+examples/cm3191/       worked examples with figures, one folder per experiment
 tests/                 synthetic-data tests
 ```
 

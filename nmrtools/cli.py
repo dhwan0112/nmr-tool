@@ -124,6 +124,8 @@ class NmrShell(cmd.Cmd):
 
     def onecmd(self, line: str) -> bool:
         """Run one command; report errors instead of leaving the shell."""
+        if line.lstrip().startswith("#"):  # comment line in a piped command file
+            return False
         try:
             return bool(super().onecmd(line))
         except CliError as exc:
@@ -337,7 +339,7 @@ class NmrShell(cmd.Cmd):
 
         The file holds {"integrals": [{"name": ..., "window_ppm": [lo, hi],
         "n_H": 1, "mw": 154.25}, ...]}; n_H and mw are optional. See
-        examples/cm3191/expt4.json.
+        examples/cm3191/organic-4-linalool/expt4.json.
         """
         words, _ = split_args(line)
         if len(words) != 1:

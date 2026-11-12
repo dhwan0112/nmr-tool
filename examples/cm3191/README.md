@@ -1,78 +1,36 @@
-# Example: CM3191 Organic Experiment 4, (±)-linalool
+# Examples: CM3191 teaching-lab spectra
 
-This example reproduces the ¹H NMR numbers and figures used for CM3191
-Organic Experiment 4, the Grignard synthesis of (±)-linalool (NUS, AY26/27),
-from the crude and the column-purified spectrum.
+Six ¹H NMR data sets from an undergraduate synthesis lab course (NUS CM3191,
+AY26/27), each worked through with `nmrtools`. All were recorded in CDCl₃
+with the standard `zg30` experiment (8 scans) at 400 or 500 MHz.
 
-| File | Purpose |
-|---|---|
-| `run_expt4.py` | the whole analysis: prints a summary, writes `results.json` and two figures |
-| `figures.py` | the two figures, with the labels of this experiment |
-| `expt4.json` | integration windows and molar masses; also a shell preset |
+Every folder holds the figure, a short note on what was measured, and the
+commands that produced both. The raw spectrometer exports are not in this
+repository.
 
-## Run
+| Folder | Experiment | What the example shows |
+|---|---|---|
+| [inorganic-1-transfer-hydrogenation](inorganic-1-transfer-hydrogenation) | Ru-catalysed oxidation of 1-phenylethanol | two spectra stacked on an internal standard, magnified inset |
+| [inorganic-2-ferrocene](inorganic-2-ferrocene) | ferrocene | ¹³C satellites of a singlet at 80-fold gain |
+| [organic-1-suzuki](organic-1-suzuki) | 4-biphenylcarboxylic acid by Suzuki coupling | aromatic region with integral windows |
+| [organic-2-aldol-diels-alder](organic-2-aldol-diels-alder) | one-pot aldol condensation and Diels–Alder reaction | three doublets of doublets and their coupling constants |
+| [organic-3-borohydride-reduction](organic-3-borohydride-reduction) | NaBH₄ reduction of 4-*tert*-butylcyclohexanone | diastereomer ratio from two integrals |
+| [organic-4-linalool](organic-4-linalool) | (±)-linalool by a Grignard reaction | a complete analysis script: yield, mass correction, custom figures |
 
-Raw data are not in this repository. Put the two spectrometer exports in
-`data/` (ignored by git), then from the repository root:
+## Running a command file
+
+The first five examples are plain command files for the shell. Lines that
+start with `#` are comments. Put the export named in the file's `load` line
+in `data/` (ignored by git) and run from the repository root:
 
 ```bash
-python examples/cm3191/run_expt4.py \
-    --crude    data/CM3191-Week_11-Thurs-400-Oct29-2026-C05.zip \
-    --purified data/CM3191-Week_11-Thurs-400-Oct29-2026-P05.zip \
-    --out results
+nmrtools < examples/cm3191/organic-2-aldol-diels-alder/session.nmr
 ```
 
-This prints a summary and writes `results/results.json`,
-`results/nmr_purified.png` and `results/nmr_crude_vs_purified.png`.
-Masses and the ketone volume default to the values on the signed datasheet
-and can be changed with `--crude-mass`, `--purified-mass` and `--ketone-ml`.
+## Gallery
 
-Expected summary:
-
-| Quantity | Value |
+| | |
 |---|---|
-| Ketone | 2.98 mmol (0.44 mL × 0.855 g mL⁻¹ ÷ 126.20 g mol⁻¹) |
-| Theoretical linalool | 0.460 g |
-| Purified yield | 33.7% (0.1549 g) |
-| Crude mole ratio, linalool : side product : EtOAc | 1 : 0.57 : 0.08 |
-| Linalool in crude | ≈ 66 wt%, 0.311 g |
-| Column recovery (linalool basis) | ≈ 50% |
-
-The same numbers in the shell:
-
-```text
-$ nmrtools data/crude.zip
-nmr> prepare
-nmr> j 5.86 5.96
-nmr> preset examples/cm3191/expt4.json
-nmr> mass 0.4725 target=linalool
-```
-
-## Method
-
-The axis is referenced to residual CHCl₃ at δ 7.26. The baseline is a
-quadratic fitted through signal-free regions, and integrals are plain sums
-over the windows. Mole ratios use one well-resolved, non-overlapping
-resonance per species, divided by its number of protons:
-
-| Species | Signal | Window (ppm) | nH |
-|---|---|---|---|
-| Linalool | CH=CH₂ internal H, δ 5.91 | 5.80–6.00 | 1 |
-| Side product | CH(OH), δ 3.81 | 3.70–3.92 | 1 |
-| Ethyl acetate | OCH₂, δ 4.12 | 4.05–4.20 | 2 |
-
-The mass correction follows the course handout *Correcting Compound Mass and
-Yield for Residual Solvent Using ¹H NMR*, extended from two to three
-components.
-
-## Limits
-
-- The spectra were acquired with `zg30`, D1 = 1 s and 8 scans. That is not a
-  quantitative experiment, so treat the mole ratios as ±10%.
-- Only the three listed species are counted. Water, salts or grease are not,
-  so the linalool weight fraction is an upper bound.
-- The side product is assigned tentatively as 6-methyl-5-hepten-2-ol.
-- The integration windows and baseline regions are set for these spectra.
-
-The course submission itself (the lab report and datasheets) is not included
-in this repository.
+| ![transfer hydrogenation](inorganic-1-transfer-hydrogenation/stack.png) | ![ferrocene](inorganic-2-ferrocene/ferrocene.png) |
+| ![Suzuki product](organic-1-suzuki/aromatic.png) | ![aldol–Diels–Alder adduct](organic-2-aldol-diels-alder/abx.png) |
+| ![reduction](organic-3-borohydride-reduction/carbinol.png) | ![linalool](organic-4-linalool/nmr_crude_vs_purified.png) |
