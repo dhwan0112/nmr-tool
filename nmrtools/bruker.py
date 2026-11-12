@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 import tempfile
+import warnings
 import zipfile
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -29,8 +30,16 @@ def read_jcamp(path: str | Path) -> dict[str, str]:
         if not m:
             continue
         key, value = m.group(1), m.group(2).strip()
-        if value.startswith("(0..") and i + 1 < len(lines):
-            value = lines[i + 1].strip()  # array values sit on the next line
+        is_array = value.startswith("(0..")
+        if is_array or (value.startswith("<") and not value.endswith(">")):
+            # Array values start on the next line and may wrap over several;
+            # a <string> may also wrap. Collect up to the next record.
+            rest = []
+            for more in lines[i + 1 :]:
+                if more.startswith(("##", "$$")):
+                    break
+                rest.append(more.strip())
+            value = " ".join(rest) if is_array else " ".join([value, *rest])
         params[key] = value
     return params
 
@@ -54,14 +63,25 @@ class Spectrum:
         lo, hi = sorted((lo, hi))
         return (self.ppm >= lo) & (self.ppm <= hi)
 
+    def refined_position(self, i: int) -> float:
+        """Sub-point position (ppm) of the maximum at index i, from a parabola
+        through that point and its two neighbours."""
+        if not 0 < i < len(self.y) - 1:
+            return float(self.ppm[i])
+        a, b, c = self.y[i - 1], self.y[i], self.y[i + 1]
+        denom = a - 2 * b + c
+        d = 0.0 if denom == 0 else 0.5 * (a - c) / denom
+        return float(self.ppm[i] + d * (self.ppm[i + 1] - self.ppm[i]))
+
     # -- corrections; each returns a new Spectrum ---------------------------
     def referenced(self, target: float = 7.26, search: tuple[float, float] = (7.20, 7.35)) -> Spectrum:
-        """Shift the axis so the tallest point in `search` sits at `target`.
+        """Shift the axis so the tallest line in `search` sits at `target`.
 
-        Default: residual CHCl3 in CDCl3 at 7.26 ppm.
+        The line position is the tallest point refined with
+        `refined_position`. Default: residual CHCl3 in CDCl3 at 7.26 ppm.
         """
-        m = self.window(*search)
-        found = float(self.ppm[m][np.argmax(self.y[m])])
+        idx = np.where(self.window(*search))[0]
+        found = self.refined_position(int(idx[np.argmax(self.y[idx])]))
         shift = target - found
         meta = dict(self.meta, reference_found=found, reference_shift=shift)
         return replace(self, ppm=self.ppm + shift, meta=meta)
@@ -91,26 +111,45 @@ class Spectrum:
         return replace(self, y=self.y / self.y[self.window(lo, hi)].max())
 
 
-def load_spectrum(path: str | Path, procno: int = 1) -> Spectrum:
-    """Load a processed spectrum from a Bruker experiment folder or a .zip of one."""
+def load_spectrum(path: str | Path, procno: int = 1, expno: int | str | None = None) -> Spectrum:
+    """Load a processed spectrum from a Bruker experiment folder or a .zip of one.
+
+    `expno` picks the experiment when the folder or archive holds several
+    (the folder above pdata, e.g. 10 in sample/10/pdata/1/1r). Without it the
+    first one in sorted order is loaded and a warning lists the others.
+    """
     path = Path(path)
     if path.is_file() and path.suffix.lower() == ".zip":
         with tempfile.TemporaryDirectory() as tmp:
             with zipfile.ZipFile(path) as zf:
                 zf.extractall(tmp)
-            return _load_dir(Path(tmp), procno, source=path.name)
-    return _load_dir(path, procno, source=path.name)
+            return _load_dir(Path(tmp), procno, expno, source=path.name)
+    return _load_dir(path, procno, expno, source=path.name)
 
 
-def _find_pdata(root: Path, procno: int) -> Path:
-    hits = sorted(p for p in root.rglob("1r") if p.parent.name == str(procno))
+def _find_pdata(root: Path, procno: int, expno: int | str | None = None) -> Path:
+    """The pdata/<procno> folder to read. The experiment number is the name of
+    the folder two levels above it."""
+    hits = sorted(p.parent for p in root.rglob("1r") if p.parent.name == str(procno))
     if not hits:
         raise FileNotFoundError(f"no pdata/{procno}/1r below {root}")
-    return hits[0].parent
+    found = ", ".join(h.parent.parent.name for h in hits)
+    if expno is not None:
+        chosen = [h for h in hits if h.parent.parent.name == str(expno)]
+        if not chosen:
+            raise FileNotFoundError(f"no experiment {expno} with pdata/{procno}/1r; found {found}")
+        return chosen[0]
+    if len(hits) > 1:
+        warnings.warn(
+            f"{len(hits)} experiments found ({found}); loading {hits[0].parent.parent.name}. "
+            "Pass expno to choose another.",
+            stacklevel=3,
+        )
+    return hits[0]
 
 
-def _load_dir(root: Path, procno: int, source: str) -> Spectrum:
-    pdata = _find_pdata(root, procno)
+def _load_dir(root: Path, procno: int, expno: int | str | None, source: str) -> Spectrum:
+    pdata = _find_pdata(root, procno, expno)
     procs = read_jcamp(pdata / "procs")
     acqus_path = pdata.parent.parent / "acqus"
     acqus = read_jcamp(acqus_path) if acqus_path.exists() else {}
@@ -132,6 +171,7 @@ def _load_dir(root: Path, procno: int, source: str) -> Spectrum:
     d = acqus.get("D", "").split()
     meta = {
         "source": source,
+        "expno": pdata.parent.parent.name,
         "pulprog": acqus.get("PULPROG", "").strip("<>"),
         "ns": int(acqus["NS"]) if "NS" in acqus else None,
         "d1_s": float(d[1]) if len(d) > 1 else None,

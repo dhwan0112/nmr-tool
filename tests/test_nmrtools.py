@@ -86,3 +86,59 @@ def test_load_bruker_folder(tmp_path):
     assert spec.ppm[0] - spec.ppm[-1] == pytest.approx(sw_hz / sf * (si - 1) / si)
     assert spec.y[5] == pytest.approx(5 * 2.0**-2)
     assert spec.meta["pulprog"] == "zg30" and spec.meta["ns"] == 8 and spec.meta["d1_s"] == 1.0
+
+
+def _write_experiment(root, expno, scale=1, acqus=None):
+    si, sf = 1024, 400.13
+    pdata = root / str(expno) / "pdata" / "1"
+    pdata.mkdir(parents=True)
+    (scale * (np.arange(si) % 97)).astype("<i4").tofile(pdata / "1r")
+    (pdata / "procs").write_text(
+        f"##$BYTORDP= 0\n##$NC_proc= 0\n##$OFFSET= 12.0\n##$SF= {sf}\n##$SI= {si}\n##$SW_p= 6402.08\n"
+    )
+    if acqus:
+        (root / str(expno) / "acqus").write_text(acqus)
+
+
+def test_mass_correction_rejects_unknown_target():
+    comps = [Component("a", 1.0, 1, 100.0)]
+    with pytest.raises(ValueError, match="target 'b'"):
+        mass_correction(comps, 1.0, target="b")
+    with pytest.raises(ValueError, match="no components"):
+        mass_correction([], 1.0)
+
+
+def test_jcamp_arrays_and_strings_wrap_over_lines(tmp_path):
+    acqus = "##$D= (0..7)\n0 2.5 0 0\n0 0 0 7\n##$TI= <first\nsecond>\n$$ a comment\n##$NS= 16\n"
+    _write_experiment(tmp_path / "s", 1, acqus=acqus)
+    from nmrtools.bruker import read_jcamp
+
+    params = read_jcamp(tmp_path / "s" / "1" / "acqus")
+    assert params["D"].split() == ["0", "2.5", "0", "0", "0", "0", "0", "7"]
+    assert params["TI"] == "<first second>"
+    assert params["NS"] == "16"
+    assert load_spectrum(tmp_path / "s").meta["d1_s"] == 2.5
+
+
+def test_several_experiments_warn_and_expno_selects(tmp_path):
+    _write_experiment(tmp_path / "s", 1)
+    _write_experiment(tmp_path / "s", 2, scale=3)
+    with pytest.warns(UserWarning, match="2 experiments found"):
+        first = load_spectrum(tmp_path / "s")
+    assert first.meta["expno"] == "1"
+    second = load_spectrum(tmp_path / "s", expno=2)
+    assert second.meta["expno"] == "2" and second.y[5] == pytest.approx(15)
+    with pytest.raises(FileNotFoundError, match="found 1, 2"):
+        load_spectrum(tmp_path / "s", expno=9)
+
+
+def test_reference_uses_interpolated_line_position():
+    # A line centred between two grid points: the tallest point is half a
+    # point off, the refined position is not.
+    spec = synthetic([(7.0, 1.0, 1.0)])
+    step = spec.ppm[0] - spec.ppm[1]
+    centre = float(spec.ppm[np.argmin(abs(spec.ppm - 7.28))] - 0.4 * step)
+    spec = synthetic([(centre, 1.0, 1.0)])
+    ref = spec.referenced()
+    assert abs(ref.meta["reference_found"] - centre) < 0.1 * step
+    assert pick_lines(ref, 7.2, 7.35, n=1)[0] == pytest.approx(7.26, abs=1e-9)

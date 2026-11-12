@@ -12,14 +12,6 @@ from scipy.signal import find_peaks
 from .bruker import Spectrum
 
 
-def _refine(spec: Spectrum, i: int) -> float:
-    """Sub-point peak position from a parabola through three points."""
-    a, b, c = spec.y[i - 1], spec.y[i], spec.y[i + 1]
-    denom = a - 2 * b + c
-    d = 0.0 if denom == 0 else 0.5 * (a - c) / denom
-    return float(spec.ppm[i] + d * (spec.ppm[i + 1] - spec.ppm[i]))
-
-
 def pick_lines(
     spec: Spectrum,
     lo: float,
@@ -37,7 +29,7 @@ def pick_lines(
     peaks = idx[peaks]
     if n is not None:
         peaks = sorted(peaks, key=lambda i: -spec.y[i])[:n]
-    return sorted((_refine(spec, i) for i in peaks), reverse=True)
+    return sorted((spec.refined_position(i) for i in peaks), reverse=True)
 
 
 def coupling_constants(lines: list[float], sf: float) -> tuple[float, tuple[float, ...]]:
@@ -87,8 +79,13 @@ def mass_correction(components: list[Component], total_mass: float, target: str 
     counted 1H signal (water, salts, grease) makes the target's weight
     fraction an upper bound.
     """
+    if not components:
+        raise ValueError("no components given")
     target = target or components[0].name
-    n_target = next(c.n for c in components if c.name == target)
+    by_name = {c.name: c for c in components}
+    if target not in by_name:
+        raise ValueError(f"target {target!r} is not one of the components: {', '.join(by_name)}")
+    n_target = by_name[target].n
     rel_mass = {c.name: c.n * c.mw for c in components}  # step 2
     total = sum(rel_mass.values())
     out: dict = {"target": target, "total_mass_g": total_mass, "components": {}}

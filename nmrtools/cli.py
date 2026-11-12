@@ -15,6 +15,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import IO
@@ -26,7 +27,7 @@ _KEYWORD = re.compile(r"^([a-z_]+)=(.*)$")
 
 SUMMARY = """\
 Spectra
-  load <path> [name]            load a Bruker folder or .zip (no corrections applied)
+  load <path> [name] [expno=N]  load a Bruker folder or .zip (no corrections applied)
   list                          loaded spectra
   use <name>                    make a spectrum the current one
   info                          acquisition parameters and axis of the current spectrum
@@ -157,15 +158,23 @@ class NmrShell(cmd.Cmd):
 
     # -- spectra ----------------------------------------------------------
     def do_load(self, line: str) -> None:
-        """load <path> [name]  -- load a Bruker experiment folder or a .zip of one."""
-        words, _ = split_args(line)
+        """load <path> [name] [expno=N]  -- load a Bruker experiment folder or a .zip of one."""
+        words, options = split_args(line)
         if not 1 <= len(words) <= 2:
-            raise CliError("usage: load <path> [name]")
+            raise CliError("usage: load <path> [name] [expno=N]")
         path = Path(words[0]).expanduser()
         if not path.exists():
             raise CliError(f"no such file or folder: {path}")
         name = words[1] if len(words) == 2 else f"s{len(self.spectra) + 1}"
-        self.spectra[name] = load_spectrum(path)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            try:
+                spec = load_spectrum(path, expno=options.get("expno"))
+            except FileNotFoundError as exc:
+                raise CliError(str(exc)) from exc
+        for w in caught:
+            self.say(f"warning: {w.message}")
+        self.spectra[name] = spec
         self.integrals[name] = []
         self.labels[name] = {}
         self.current = name
@@ -200,7 +209,7 @@ class NmrShell(cmd.Cmd):
 
     # -- corrections ------------------------------------------------------
     def do_ref(self, line: str) -> None:
-        """ref [target [lo hi]]  -- shift the axis so the tallest point in lo-hi sits at target."""
+        """ref [target [lo hi]]  -- shift the axis so the tallest line in lo-hi sits at target."""
         words, _ = split_args(line)
         nums = _floats(words, "ref [target [lo hi]]")
         if len(nums) not in (0, 1, 3):

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nmr-tool"
-version = "0.3.0"
+version = "0.4.0"
 description = "Read and analyse processed Bruker 1H NMR spectra from an interactive shell"
 readme = "README.md"
 requires-python = ">=3.10"

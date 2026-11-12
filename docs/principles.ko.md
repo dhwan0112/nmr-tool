@@ -10,9 +10,9 @@ NMR 측정은 자유 유도 감쇠(FID)를 기록하고, 이를 푸리에 변환
 
 ## 2. 파일에서 스펙트럼으로
 
-코드: [`read_jcamp`](../nmrtools/bruker.py#L23-L36), [`_load_dir`](../nmrtools/bruker.py#L112-L143), [`Spectrum.hz_per_point`](../nmrtools/bruker.py#L47-L50)
+코드: [`read_jcamp`](../nmrtools/bruker.py#L24-L44), [`_load_dir`](../nmrtools/bruker.py#L151-L183), [`_find_pdata`](../nmrtools/bruker.py#L130-L148), [`Spectrum.hz_per_point`](../nmrtools/bruker.py#L56-L59)
 
-`1r`은 세기값만 차례로 적은 이진 파일이다. 축 정보는 같은 폴더의 `procs`에 글자로 적혀 있다. 읽을 때 쓰는 매개변수는 다음과 같다.
+`1r`은 세기값만 차례로 적은 이진 파일이다. 축 정보는 같은 폴더의 `procs`에 글자로 적혀 있다. 폴더나 zip 안에 실험이 여러 개 있으면 정렬 순서로 첫 번째를 읽고 나머지 번호를 경고로 알려 준다. 다른 실험은 `expno`로 고른다. 읽을 때 쓰는 매개변수는 다음과 같다.
 
 | 매개변수 | 뜻 |
 |---|---|
@@ -57,19 +57,19 @@ SW_p를 SF로 나누면 스펙트럼 폭이 ppm 단위가 되고, 이를 SI로 �
 
 ## 3. 화학적 이동의 기준 맞추기
 
-코드: [`Spectrum.referenced`](../nmrtools/bruker.py#L58-L67), [`do_ref`](../nmrtools/cli.py#L202)
+코드: [`Spectrum.referenced`](../nmrtools/bruker.py#L77-L87), [`Spectrum.refined_position`](../nmrtools/bruker.py#L66-L74), [`do_ref`](../nmrtools/cli.py#L211-L226)
 
 분광기는 중수소 잠금(lock) 신호로 축을 잡는다. 이 축은 대개 0.02 ppm쯤 어긋나 있다. 예시의 CDCl₃ 스펙트럼에서 잔류 CHCl₃ 선은 7.283에서 7.285 ppm 사이에 기록되어 있었고, 약속된 값은 7.26 ppm이다.
 
 `ref`는 지정한 구간에서 가장 높은 점을 찾아 그 점이 목표값에 오도록 축 전체를 같은 양만큼 옮긴다.
 
 ```
-찾은 위치 = 구간 [a, b] 안에서 y_k가 가장 큰 점의 δ_k
+찾은 위치 = 구간 [a, b] 안에서 y_k가 가장 큰 점을 5절의 포물선으로 보간한 위치
 이동량    = 목표값 − 찾은 위치
 δ'_k      = δ_k + 이동량
 ```
 
-찾은 위치는 격자점 그대로이고 보간하지 않는다. 그래서 기준 맞추기의 정밀도는 점 간격(400 MHz에서 0.0006 ppm)이다.
+가장 높은 격자점을 그대로 쓰면 점 간격의 절반(400 MHz에서 0.0003 ppm)까지 어긋날 수 있다. 선 위치를 읽을 때와 같은 보간을 쓰므로, 기준 선을 `peaks`로 다시 읽으면 목표값이 그대로 나온다.
 
 축을 늘이거나 줄이지 않고 평행 이동만 하므로 선 사이의 간격, 곧 결합 상수는 바뀌지 않는다.
 
@@ -81,7 +81,7 @@ Suzuki 생성물은 방향족 선이 7.37 ppm 위쪽에 있어서 구간을 7.27
 
 ## 4. 기준선
 
-코드: [`Spectrum.baseline_offset`](../nmrtools/bruker.py#L69-L71), [`Spectrum.baseline_poly`](../nmrtools/bruker.py#L73-L87), [`do_baseline`](../nmrtools/cli.py#L219)
+코드: [`Spectrum.baseline_offset`](../nmrtools/bruker.py#L89-L91), [`Spectrum.baseline_poly`](../nmrtools/bruker.py#L93-L107), [`do_baseline`](../nmrtools/cli.py#L228-L258)
 
 적분은 세기를 더하는 계산이므로 신호가 없는 곳의 세기가 0이어야 한다. 기준선이 0에서 h만큼 떠 있으면 폭이 n점인 적분 구간(아래에서는 창이라 부른다. 1절의 창 함수와는 다른 것이다)의 적분에 h × n이 그대로 더해진다. 작은 신호를 넓은 창으로 적분할수록 이 오차의 비중이 커진다.
 
@@ -109,7 +109,7 @@ y'_k = y_k − p(δ_k)
 
 ## 5. 선 위치
 
-코드: [`pick_lines`](../nmrtools/analysis.py#L23-L40), [`_refine`](../nmrtools/analysis.py#L15-L20), [`do_peaks`](../nmrtools/cli.py#L270)
+코드: [`pick_lines`](../nmrtools/analysis.py#L15-L32), [`Spectrum.refined_position`](../nmrtools/bruker.py#L66-L74), [`do_peaks`](../nmrtools/cli.py#L279-L288)
 
 `peaks`는 지정한 구간에서 양옆 점보다 높은 점을 모두 찾고, 그중 높이가 구간 최댓값의 일정 비율(기본 0.15) 이상인 것만 남긴다. 이 문턱값이 잡음과 작은 불순물 선을 걸러낸다.
 
@@ -135,7 +135,7 @@ d는 −0.5와 0.5 사이의 값이다. 이 보간으로 선 위치를 점 간�
 
 ## 6. 결합 상수
 
-코드: [`coupling_constants`](../nmrtools/analysis.py#L43-L54), [`do_j`](../nmrtools/cli.py#L281)
+코드: [`coupling_constants`](../nmrtools/analysis.py#L35-L46), [`do_j`](../nmrtools/cli.py#L290-L297)
 
 결합 상수(coupling constant) J는 스핀–스핀 결합으로 갈라진 선 사이의 간격을 Hz로 잰 값이다. ppm 차이에 기준 주파수를 곱하면 Hz가 된다.
 
@@ -184,7 +184,7 @@ Diels–Alder 첨가 생성물의 Hb(3.18 ppm)와 Hc(2.65 ppm)는 500 MHz에서 
 
 ## 7. 적분
 
-코드: [`integrate`](../nmrtools/analysis.py#L57-L63), [`do_integrate`](../nmrtools/cli.py#L291)
+코드: [`integrate`](../nmrtools/analysis.py#L49-L55), [`do_integrate`](../nmrtools/cli.py#L300-L316)
 
 `integrate`는 창 안의 세기를 모두 더한다.
 
@@ -218,7 +218,7 @@ sin θ × (1 − E) / (1 − E cos θ),    E = exp(−T_R / T₁)
 
 ## 8. 몰비
 
-코드: [`Component.n`](../nmrtools/analysis.py#L75-L78), [`do_integrals`](../nmrtools/cli.py#L309-L323)
+코드: [`Component.n`](../nmrtools/analysis.py#L67-L70), [`do_integrals`](../nmrtools/cli.py#L318-L332)
 
 화합물 i에서 고른 신호의 적분을 I_i, 그 신호의 양성자 수를 n_i라 하면
 
@@ -247,7 +247,7 @@ ferrocene 예시에서 ferrocene 1 mol당 물 1.87 mol이라는 값도 같은 �
 
 ## 9. 질량 보정
 
-코드: [`mass_correction`](../nmrtools/analysis.py#L81-L104), [`_mass`](../nmrtools/cli.py#L367-L375), [`do_mass`](../nmrtools/cli.py#L377)
+코드: [`mass_correction`](../nmrtools/analysis.py#L73-L101), [`_mass`](../nmrtools/cli.py#L376-L384), [`do_mass`](../nmrtools/cli.py#L386-L402)
 
 저울로 잰 질량에는 생성물 말고도 잔류 용매와 부산물이 들어 있다. NMR 몰비를 알면 그 질량을 성분별로 나눌 수 있다.
 
@@ -274,7 +274,7 @@ n_이론은 한계 반응물의 몰수에 화학량론 계수를 곱한 값이�
 
 ## 10. 그림의 세로축
 
-코드: [`plot_panels`](../nmrtools/plots.py#L46-L102), [`plot_stack`](../nmrtools/plots.py#L116-L200), [`Spectrum.normalised`](../nmrtools/bruker.py#L89-L91)
+코드: [`plot_panels`](../nmrtools/plots.py#L46-L102), [`plot_stack`](../nmrtools/plots.py#L116-L200), [`Spectrum.normalised`](../nmrtools/bruker.py#L109-L111)
 
 세기의 단위가 임의이므로 그림의 세로 눈금은 뜻이 없고, 그리지 않는다. 대신 무엇에 맞춰 높이를 정했는지가 중요하다.
 

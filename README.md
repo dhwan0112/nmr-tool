@@ -58,7 +58,9 @@ $ nmrtools crude.zip purified.zip
 nmr> stack 0.45 6.2 zoom=3.6:4.3 x=10 out=compare.png
 ```
 
-`load` applies no corrections; use `ref` and `baseline` yourself. `prepare`
+`load` applies no corrections; use `ref` and `baseline` yourself. If a folder
+or archive holds several experiments, `load` reads the first and names the
+others in a warning; pick one with `load <path> [name] expno=N`. `prepare`
 runs `ref`, `baseline offset` and `baseline poly` with their default regions,
 which were chosen for the example spectra, so check them for another compound.
 `preset <file.json>` fills the integral table from a file (see
