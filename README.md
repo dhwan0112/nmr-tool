@@ -9,6 +9,8 @@ constants, integrals, mass correction for residual solvent, and figures.
 It reads the processed spectrum (`pdata/1/1r`) directly. It does not need
 TopSpin or MestReNova, and it does not redo the Fourier transform or phasing.
 
+I did not want to use MestReNova, so I built this repository bit by bit.
+
 ## What it does
 
 - Reads a Bruker experiment folder or a `.zip` of one.
