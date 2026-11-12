@@ -1,0 +1,16 @@
+# Raw spectrometer data and course material stay out of the repository
+data/
+*.zip
+*.pdf
+
+# Outputs
+results/
+*.png
+!docs/*.png
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.ruff_cache/
