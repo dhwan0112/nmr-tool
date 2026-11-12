@@ -104,16 +104,16 @@ def plot_crude_vs_purified(
     ax.annotate(
         "EtOAc 2.05 s",
         xy=(2.045, c_off + h_etoac + 0.02),
-        xytext=(2.22, c_off + 0.80),
+        xytext=(2.42, c_off + 0.80),
         color=WARM,
         fontsize=8,
-        ha="center",
+        ha="left",
         arrowprops=line,
     )
     ax.annotate(
         "CH(OH)CH₃\n1.19 d",
         xy=(1.17, c_off + h_doublet * 0.9),
-        xytext=(1.04, c_off + 0.50),
+        xytext=(1.13, c_off + 0.50),
         color=WARM,
         fontsize=8,
         ha="left",
