@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cm3191-expt4-nmr"
+name = "nmr-tool"
 version = "0.2.0"
 description = "Read processed Bruker 1H NMR spectra and reproduce the CM3191 Expt 4 (linalool) analysis"
 readme = "README.md"

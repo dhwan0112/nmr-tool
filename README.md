@@ -1,6 +1,6 @@
-[![tests](https://github.com/dhwan0112/cm3191-expt4-nmr/actions/workflows/tests.yml/badge.svg)](https://github.com/dhwan0112/cm3191-expt4-nmr/actions/workflows/tests.yml)
+[![tests](https://github.com/dhwan0112/nmr-tool/actions/workflows/tests.yml/badge.svg)](https://github.com/dhwan0112/nmr-tool/actions/workflows/tests.yml)
 
-# cm3191-expt4-nmr
+# nmr-tool
 
 Python scripts that read processed Bruker ¹H NMR spectra and reproduce the
 numbers and figures used for CM3191 Organic Experiment 4, the Grignard
