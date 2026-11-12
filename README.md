@@ -62,7 +62,7 @@ nmr> stack 0.45 6.2 zoom=3.6:4.3 x=10 out=compare.png
 runs `ref`, `baseline offset` and `baseline poly` with their default regions,
 which were chosen for the example spectra, so check them for another compound.
 `preset <file.json>` fills the integral table from a file (see
-[examples/cm3191/organic-4-linalool/expt4.json](examples/cm3191/expt4.json)).
+[examples/cm3191/organic-4-linalool/expt4.json](examples/cm3191/organic-4-linalool/expt4.json)).
 
 Commands can also be run without the prompt,
 `nmrtools experiment.zip -c "ref; j 5.86 5.96"`, or piped in on standard
@@ -100,6 +100,10 @@ coupling constants, a diastereomer ratio, and a complete analysis script
   or a doublet of doublets.
 - The results have not been cross-checked against MestReNova.
 
+The formulas behind each command, and the conditions under which they
+hold, are written up in Korean in
+[docs/principles.ko.md](docs/principles.ko.md).
+
 ## Tests
 
 ```bash
@@ -117,6 +121,7 @@ nmrtools/analysis.py   lines, coupling constants, integrals, mass correction
 nmrtools/plots.py      panel and stack figures
 nmrtools/cli.py        interactive shell (`nmrtools`, `python -m nmrtools`)
 examples/cm3191/       worked examples with figures, one folder per experiment
+docs/principles.ko.md  how each quantity is calculated (Korean)
 tests/                 synthetic-data tests
 ```
 
